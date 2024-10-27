@@ -60,3 +60,49 @@ share/python-wheels/
 
 # Environment variables file
 .env
+
+# Node modules
+node_modules/
+npm-debug.log
+
+# Build artifacts
+dist/
+build/
+*.rpm
+*.deb
+*.tar.gz
+
+# Logs
+*.log
+
+# Environment variables
+.env
+*.env
+
+# Dependency directories
+bower_components/
+vendor/
+
+# Temporary files
+tmp/
+temp/
+.cache/
+*.tmp
+
+# Bootstrap compiled files (if you have compiled CSS/JS)
+bootstrap/dist/
+bootstrap/css/
+bootstrap/js/
+
+# Editor and IDE files
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

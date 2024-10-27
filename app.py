@@ -12,6 +12,7 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from flask_migrate import Migrate
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -20,6 +21,8 @@ app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
 
 # TODO: connect to a local postgresql database
 
@@ -39,6 +42,10 @@ class Venue(db.Model):
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
 
+    # Relationship with Show model
+    shows = db.relationship('Show', backref='venue', lazy=True)
+
+
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
@@ -52,6 +59,21 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+
+    # Relationship with Show model
+    shows = db.relationship('Show', backref='artist', lazy=True)
+
+
+class Show(db.Model):
+    __tablename__ = 'Show'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    show_time = db.Column(db.DateTime, nullable=False)
+
+    def __repr__(self):
+        return f'<Show {self.id}: {self.artist.name} at {self.venue.name} on {self.show_time.strftime("%A %B %d, %Y at %I:%M %p")}>'
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
