@@ -5,7 +5,7 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, jsonify, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -39,11 +39,19 @@ class Venue(db.Model):
     state = db.Column(db.String(120))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
+    genres = db.Column(db.String(120), nullable=True)  # To store genres as a comma-separated string
+    facebook_link = db.Column(db.String(120), nullable=True)
+    image_link = db.Column(db.String(500), nullable=True)
+    website_link = db.Column(db.String(500), nullable=True)
+    seeking_talent = db.Column(db.Boolean, default=False)  # Boolean to indicate if seeking talent
+    seeking_description = db.Column(db.String(500), nullable=True)
+
 
     # Relationship with Show model
     shows = db.relationship('Show', backref='venue', lazy=True)
+
+    def __repr__(self):
+        return f'<Venue {self.name}, City: {self.city}, State: {self.state}>'
 
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
@@ -75,7 +83,7 @@ class Show(db.Model):
     def __repr__(self):
         return f'<Show {self.id}: {self.artist.name} at {self.venue.name} on {self.show_time.strftime("%A %B %d, %Y at %I:%M %p")}>'
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
+# TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
@@ -241,15 +249,63 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
+  try:
+    # Extract data from the incoming JSON request
+    data = request.get_json()
+
+    # Create a new Venue object
+    new_venue = Venue(
+        name=data.get('name'),
+        city=data.get('city'),
+        state=data.get('state'),
+        address=data.get('address'),
+        phone=data.get('phone'),
+        genres=data.get('genres'),
+        facebook_link=data.get('facebook_link'),
+        image_link=data.get('image_link'),
+        website_link=data.get('website_link'),
+        seeking_talent=data.get('seeking_talent'),
+        seeking_description=data.get('seeking_description')
+    )
+
+        # Add the new venue to the session and commit it to the database
+    db.session.add(new_venue)
+    db.session.commit()
+
+    # Return a success message
+    return jsonify({
+        'success': True,
+        'venue': {
+            'id': new_venue.id,
+            'name': new_venue.name,
+            'city': new_venue.city,
+            'state': new_venue.state,
+            'address': new_venue.address,
+            'phone': new_venue.phone,
+            'genres': new_venue.genres,
+            'facebook_link': new_venue.facebook_link,
+            'image_link': new_venue.image_link,
+            'website_link': new_venue.website_link,
+            'seeking_talent': new_venue.seeking_talent,
+            'seeking_description': new_venue.seeking_description
+        }
+    }), 201  # HTTP status code for created
+
+  except Exception as e:
+      # Rollback the session in case of an error
+      db.session.rollback()
+      print(f"Error creating venue: {e}")  # Log the error for debugging
+      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
+  
+  finally:
+    db.session.close()
 
   # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
+  # flash('Venue ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+  # return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
