@@ -1,0 +1,62 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Flask instance folder
+instance/
+.venv/
+
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg
+
+# PyInstaller
+#  Often these files are written by a Python script from a .spec file
+*.manifest
+*.spec
+
+# Backup files
+*.bak
+*.swp
+*~
+*.tmp
+*.temp
+
+# VS Code settings
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment variables file
+.env
