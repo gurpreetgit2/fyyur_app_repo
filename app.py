@@ -33,7 +33,7 @@ class Venue(db.Model):
     __tablename__ = 'Venue'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     address = db.Column(db.String(120))
@@ -61,13 +61,16 @@ class Artist(db.Model):
     __tablename__ = 'Artist'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    website_link = db.Column(db.String(120))
+    seeking_venue = db.Column(db.Boolean, default=False)
+    seeking_description = db.Column(db.String(500), nullable=True)
 
     # Relationship with Show model
     shows = db.relationship('Show', backref='artist', lazy=True)
@@ -461,15 +464,58 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-  # called upon submitting the new artist listing form
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
+  try:
+    # Extract data from the incoming JSON request
+    data = request.get_json()
 
-  # on successful db insert, flash success
-  flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-  return render_template('pages/home.html')
+    # Create a new Venue object
+    new_artist = Artist(
+        name=data.get('name'),
+        city=data.get('city'),
+        state=data.get('state'),
+        phone=data.get('phone'),
+        genres=data.get('genres'),
+        facebook_link=data.get('facebook_link'),
+        image_link=data.get('image_link'),
+        website_link=data.get('website_link'),
+        seeking_venue=data.get('seeking_venue') == 'y',
+        seeking_description=data.get('seeking_description')
+    )
+
+        # Add the new venue to the session and commit it to the database
+    db.session.add(new_artist)
+    db.session.commit()
+
+    # Return a success message
+    return jsonify({
+        'success': True,
+        'artist': {
+            'id': new_artist.id,
+            'name': new_artist.name,
+            'city': new_artist.city,
+            'state': new_artist.state,
+            'phone': new_artist.phone,
+            'genres': new_artist.genres,
+            'facebook_link': new_artist.facebook_link,
+            'image_link': new_artist.image_link,
+            'website_link': new_artist.website_link,
+            'seeking_venue': new_artist.seeking_venue,
+            'seeking_description': new_artist.seeking_description
+        }
+    }), 201  # HTTP status code for created
+
+  except Exception as e:
+      # Rollback the session in case of an error
+      db.session.rollback()
+      print(f"Error creating venue: {e}")  # Log the error for debugging
+      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
+  
+  finally:
+    db.session.close()
+
+
+   
+  
 
 
 #  Shows
