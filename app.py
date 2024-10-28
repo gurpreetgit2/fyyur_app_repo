@@ -24,8 +24,6 @@ db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
 
-# TODO: connect to a local postgresql database
-
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
@@ -50,11 +48,13 @@ class Venue(db.Model):
     # Relationship with Show model
     shows = db.relationship('Show', backref='venue', lazy=True)
 
+    def num_upcoming_shows(self):
+        # Implement the logic to count upcoming shows
+        return Show.query.filter(Show.venue_id == self.id).count()
+
     def __repr__(self):
         return f'<Venue {self.name}, City: {self.city}, State: {self.state}>'
 
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -83,9 +83,6 @@ class Show(db.Model):
     def __repr__(self):
         return f'<Show {self.id}: {self.artist.name} at {self.venue.name} on {self.show_time.strftime("%A %B %d, %Y at %I:%M %p")}>'
 
-# TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -115,45 +112,51 @@ def index():
 
 @app.route('/venues')
 def venues():
-  # TODO: replace with real venues data.
-  #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+
+  areas = Venue.query.with_entities(Venue.city, Venue.state).distinct().all()
+  data=[]
+  for area in areas:
+        venues_in_area = Venue.query.filter_by(city=area.city, state=area.state).all()
+        
+        # Format each venue entry with the required fields
+        venue_data = [{
+            "id": venue.id,
+            "name": venue.name,
+            "num_upcoming_shows": venue.num_upcoming_shows()  # Assuming you have this method implemented in your model
+        } for venue in venues_in_area]
+        
+        # Append area data with venues
+        data.append({
+            "city": area.city,
+            "state": area.state,
+            "venues": venue_data
+        })
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-  # seach for Hop should return "The Musical Hop".
-  # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+  # Get the search term from the form
+    search_term = request.form.get('search_term', '')
+
+    # Query the database for venues with names that match the search term
+    matched_venues = Venue.query.filter(Venue.name.ilike(f'%{search_term}%')).all()
+
+    # Format the response
+    response = {
+        "count": len(matched_venues),
+        "data": []
+    }
+    
+    # Populate response data with each venue's details
+    for venue in matched_venues:
+        response["data"].append({
+            "id": venue.id,
+            "name": venue.name,
+            "num_upcoming_shows": venue.num_upcoming_shows()  # Assuming this method is in your Venue model
+        })
+
+    # Render the results with the search term
+    return render_template('pages/search_venues.html', results=response, search_term=search_term)
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
@@ -264,7 +267,7 @@ def create_venue_submission():
         facebook_link=data.get('facebook_link'),
         image_link=data.get('image_link'),
         website_link=data.get('website_link'),
-        seeking_talent=data.get('seeking_talent'),
+        seeking_talent=data.get('seeking_talent') == 'y',
         seeking_description=data.get('seeking_description')
     )
 
@@ -300,12 +303,6 @@ def create_venue_submission():
   finally:
     db.session.close()
 
-  # on successful db insert, flash success
-  # flash('Venue ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  # return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
