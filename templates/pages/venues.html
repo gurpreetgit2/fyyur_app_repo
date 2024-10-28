@@ -5,15 +5,44 @@
 <h3>{{ area.city }}, {{ area.state }}</h3>
 	<ul class="items">
 		{% for venue in area.venues %}
-		<li>
+		<li id="venue-{{ venue.id }}">
 			<a href="/venues/{{ venue.id }}">
 				<i class="fas fa-music"></i>
 				<div class="item">
 					<h5>{{ venue.name }}</h5>
 				</div>
 			</a>
+			<form id="delete-form-{{ venue.id }}">
+				<button type="submit" class="btn btn-danger">Delete Venue</button>
+			</form>
 		</li>
 		{% endfor %}
 	</ul>
 {% endfor %}
+
+<script>
+	document.querySelectorAll('form[id^="delete-form-"]').forEach(form => {
+		form.onsubmit = function(e) {
+			e.preventDefault();  // Prevent the default form submission
+
+			const venueId = form.id.replace('delete-form-', '');  // Extract venue ID from form ID
+
+			fetch(`/venues/${venueId}`, {
+				method: 'DELETE'
+			})
+			.then(response => {
+				if (response.ok) {
+					// Remove the venue element from the DOM
+					const venueElement = document.getElementById(`venue-${venueId}`);
+					if (venueElement) {
+						venueElement.remove();
+					}
+				} else {
+					alert('Failed to delete the venue.');
+				}
+			})
+			.catch(error => console.error('Error:', error));
+		};
+	});
+</script>
 {% endblock %}
