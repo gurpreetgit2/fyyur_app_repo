@@ -2,7 +2,11 @@
 {% block title %}Edit Artist{% endblock %}
 {% block content %}
   <div class="form-wrapper">
-    <form class="form" method="post" action="/artists/{{artist.id}}/edit">
+    <!-- Success and Error messages (hidden by default) -->
+    <div id="success-message" class="alert alert-success hidden">Artist updated successfully!</div>
+    <div id="error-message" class="alert alert-danger hidden">There was an error updating the artist. Please try again.</div>
+    
+    <form id="artistForm" class="form" method="post" action="/artists/{{artist.id}}/edit">
       <h3 class="form-heading">Edit artist <em>{{ artist.name }}</em></h3>
       <div class="form-group">
         <label for="name">Name</label>
@@ -56,4 +60,40 @@
       <input type="submit" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
     </form>
   </div>
+  <script>
+    document.getElementById('artistForm').onsubmit = function(e) {
+      e.preventDefault();  // Prevent the default form submission
+      
+      const formData = new FormData(this);
+      const jsonData = Object.fromEntries(formData.entries());  // Convert form data to JSON object
+
+      // Adjust the artist ID dynamically in the fetch URL
+      const artistId = "{{artist.id}}" ;
+      fetch(`/artists/${artistId}/edit`, {
+          method: 'POST',
+          body: JSON.stringify(jsonData),
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(jsonResponse => {
+          console.log(jsonResponse);
+          document.getElementById('success-message').classList.remove('hidden');
+          document.getElementById('error-message').classList.add('hidden');
+          // Optionally reset the form or redirect as needed
+          document.getElementById('artistForm').reset();
+      })
+      .catch(error => {
+          console.error('There was a problem with the fetch operation:', error);
+          document.getElementById('error-message').classList.remove('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+      });
+    }
+  </script>
 {% endblock %}
