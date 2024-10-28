@@ -571,15 +571,35 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  # called to create new shows in the db, upon submitting new show listing form
-  # TODO: insert form data as a new Show record in the db, instead
+   try:
+    # Extract data from the incoming JSON request
+    data = request.get_json()
 
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+    # create a new show obect
+    new_show = Show(
+       artist_id = data.get('artist_id'),
+       venue_id = data.get('venue_id'),
+       show_time = data.get('start_time')
+    )
+    db.session.add(new_show)
+    db.session.commit()
+    return jsonify({
+       'success': True,
+       'show':{
+          'id':new_show.id,
+          'venue_id':new_show.venue_id,
+          'start_time':new_show.show_time
+       }
+    }), 201  # HTTP status code for created
+   
+   except Exception as e:
+      db.session.rollback()
+      print(f"Error creating venue: {e}")  # Log the error for debugging
+      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
+   
+   finally: 
+    db.session.close()     
+  
 
 @app.errorhandler(404)
 def not_found_error(error):
