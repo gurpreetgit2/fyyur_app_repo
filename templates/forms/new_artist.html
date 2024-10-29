@@ -2,7 +2,11 @@
 {% block title %}New Artist{% endblock %}
 {% block content %}
   <div class="form-wrapper">
-    <form method="post" class="form">
+    <!-- Success and Error Messages -->
+    <div id="success-message" class="alert alert-success hidden">Artist created successfully!</div>
+    <div id="error-message" class="alert alert-danger hidden">There was an error creating the artist.</div>
+
+    <form id="artistForm" method="post" class="form" action=/artists/create>
       <h3 class="form-heading">List a new artist</h3>
       <div class="form-group">
         <label for="name">Name</label>
@@ -55,4 +59,38 @@
       <input type="submit" value="Create Artist" class="btn btn-primary btn-lg btn-block">
     </form>
   </div>
+  <script>
+    document.getElementById('artistForm').onsubmit = function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const jsonData = Object.fromEntries(formData.entries());
+
+      fetch('/artists/create', {
+          method: 'POST',
+          body: JSON.stringify(jsonData),
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(jsonResponse => {
+          console.log(jsonResponse);
+          document.getElementById('success-message').classList.remove('hidden');
+          document.getElementById('error-message').classList.add('hidden');
+          // Optionally redirect or reset the form
+          document.getElementById('artistForm').reset();
+      })
+      .catch(error => {
+          console.error('There was a problem with the fetch operation:', error);
+          document.getElementById('error-message').classList.remove('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+      });
+    }
+  </script>
 {% endblock %}

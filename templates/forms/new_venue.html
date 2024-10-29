@@ -2,7 +2,7 @@
 {% block title %}New Venue{% endblock %}
 {% block content %}
   <div class="form-wrapper">
-    <form method="post" class="form" action="/venues/create">
+    <form id="venueForm" method="post" class="form" action="/venues/create">
       <h3 class="form-heading">List a new venue <a href="{{ url_for('index') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
       <div class="form-group">
         <label for="name">Name</label>
@@ -26,38 +26,74 @@
       <div class="form-group">
           <label for="phone">Phone</label>
           {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true) }}
-        </div>
+      </div>
       <div class="form-group">
         <label for="genres">Genres</label>
         <small>Ctrl+Click to select multiple</small>
         {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', autofocus = true) }}
       </div>
-      
       <div class="form-group">
           <label for="facebook_link">Facebook Link</label>
           {{ form.facebook_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
-       </div>
-      
-       <div class="form-group">
+      </div>
+      <div class="form-group">
           <label for="image_link">Image Link</label>
           {{ form.image_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
-       </div>
-
-       <div class="form-group">
-            <label for="website_link">Website Link</label>
-            {{ form.website_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
-       </div>
-
-       <div class="form-group">
-             <label for="seeking_talent">Looking for Talent</label>
-             {{ form.seeking_talent(placeholder='Venue', autofocus = true) }}
-       </div>
-
-       <div class="form-group">
-            <label for="seeking_description">Seeking Description</label>
-            {{ form.seeking_description(class_ = 'form-control', placeholder='Description', autofocus = true) }}
-       </div>
+      </div>
+      <div class="form-group">
+          <label for="website_link">Website Link</label>
+          {{ form.website_link(class_ = 'form-control', placeholder='http://', autofocus = true) }}
+      </div>
+      <div class="form-group">
+          <label for="seeking_talent">Looking for Talent</label>
+          {{ form.seeking_talent(placeholder='Venue', autofocus = true) }}
+      </div>
+      <div class="form-group">
+          <label for="seeking_description">Seeking Description</label>
+          {{ form.seeking_description(class_ = 'form-control', placeholder='Description', autofocus = true) }}
+      </div>
       <input type="submit" value="Create Venue" class="btn btn-primary btn-lg btn-block">
     </form>
+    <div id="success-message" class="hidden alert alert-success" style="margin-top: 20px;">
+      Venue created successfully!
+    </div>
+    <div id="error-message" class="hidden alert alert-danger" style="margin-top: 20px;">
+      An error occurred while creating the venue. Please try again.
+    </div>
   </div>
+
+  <script>
+    document.getElementById('venueForm').onsubmit = function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const jsonData = Object.fromEntries(formData.entries());
+
+      fetch('/venues/create', {
+          method: 'POST',
+          body: JSON.stringify(jsonData),
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(jsonResponse => {
+          console.log(jsonResponse);
+          document.getElementById('success-message').classList.remove('hidden');
+          document.getElementById('error-message').classList.add('hidden');
+          // Optionally redirect or reset the form
+          document.getElementById('venueForm').reset();
+      })
+      .catch(error => {
+          console.error('There was a problem with the fetch operation:', error);
+          document.getElementById('error-message').classList.remove('hidden');
+          document.getElementById('success-message').classList.add('hidden');
+      });
+    }
+  </script>
 {% endblock %}
