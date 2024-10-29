@@ -417,7 +417,7 @@ def edit_artist_submission(artist_id):
       # Commit the changes to the database
       db.session.commit()
 
-        # Redirect to the artist's page after update
+      # Redirect to the artist's page after update
       return jsonify({"success": True}), 200
 
     except Exception as e:
@@ -436,9 +436,36 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-  # TODO: take values from the form submitted, and update existing
-  # venue record with ID <venue_id> using the new attributes
-  return redirect(url_for('show_venue', venue_id=venue_id))
+  data = request.get_json()
+  try:
+    venue = Venue.query.get(venue_id)
+    # update values for this above venue object
+    venue.name = data.get('name')
+    venue.city = data.get('city')
+    venue.state = data.get('state')
+    venue.address = data.get('address')
+    venue.phone = data.get('phone')
+    venue.genres = data.get('genres')
+    venue.facebook_link = data.get('facebook_link')
+    venue.image_link=data.get('image_link')
+    venue.website_link=data.get('website_link')
+    venue.seeking_talent=data.get('seeking_talent') == 'y'
+    venue.seeking_description=data.get('seeking_description')
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    # Redirect to the artist's page after update
+    return jsonify({"success": True}), 200
+
+  except Exception as e:
+    # Roll back the session if there's an error
+    db.session.rollback()
+    print(f"Error: {e}")
+    return jsonify({"error": "Could not update artist"}), 500
+  
+  finally:
+    db.session.close() 
 
 #  Create Artist
 #  ----------------------------------------------------------------
