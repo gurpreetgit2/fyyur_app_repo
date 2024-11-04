@@ -167,65 +167,47 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  try:
-    # Extract data from the incoming JSON request
-    data = request.get_json()
+  form = VenueForm(request.form, meta={'csrf': False})
 
-    # Check if genres is already a list; if not, split
-    genres = data.get('genres')
-    if isinstance(genres, str):
-        genres = genres.split(',')  
-    elif not isinstance(genres, list):
-        genres = list(genres)  # Fallback if genres is formatted incorrectly
-
-
-    # Create a new Venue object
-    new_venue = Venue(
-        name=data.get('name'),
-        city=data.get('city'),
-        state=data.get('state'),
-        address=data.get('address'),
-        phone=data.get('phone'),
-        genres=genres,
-        facebook_link=data.get('facebook_link'),
-        image_link=data.get('image_link'),
-        website_link=data.get('website_link'),
-        seeking_talent=data.get('seeking_talent') == 'y',
-        seeking_description=data.get('seeking_description')
-    )
-
-        # Add the new venue to the session and commit it to the database
-    db.session.add(new_venue)
-    db.session.commit()
-
-    # Return a success message
-    return jsonify({
-        'success': True,
-        'venue': {
-            'id': new_venue.id,
-            'name': new_venue.name,
-            'city': new_venue.city,
-            'state': new_venue.state,
-            'address': new_venue.address,
-            'phone': new_venue.phone,
-            'genres': new_venue.genres,
-            'facebook_link': new_venue.facebook_link,
-            'image_link': new_venue.image_link,
-            'website_link': new_venue.website_link,
-            'seeking_talent': new_venue.seeking_talent,
-            'seeking_description': new_venue.seeking_description
-        }
-    }), 201  # HTTP status code for created
-
-  except Exception as e:
-      # Rollback the session in case of an error
-      db.session.rollback()
-      print(f"Error creating venue: {e}")  # Log the error for debugging
-      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
+  # Print the form data and validation errors for debugging
+  print("Form Data:", request.form)
+  print("Form Validation Errors:", form.errors)
   
-  finally:
-    db.session.close()
+  if form.validate():  # This checks if the form passes all validations
+      try:
+        # Create a new Venue object using the form data
+        new_venue = Venue(
+          name=form.name.data,
+          city=form.city.data,
+          state=form.state.data,
+          address=form.address.data,
+          phone=form.phone.data,
+          genres=form.genres.data,  # Flask-WTF handles SelectMultipleField as a list automatically
+          facebook_link=form.facebook_link.data,
+          image_link=form.image_link.data,
+          website_link=form.website_link.data,
+          seeking_talent=form.seeking_talent.data or False,
+          seeking_description=form.seeking_description.data
+        )
 
+        # Add the new venue to the session and commit to the database
+        db.session.add(new_venue)
+        db.session.commit()
+
+        # Show success message
+        return jsonify({'success': True, 'message': f'Venue {form.name.data} was successfully listed!'})
+
+      except Exception as e:
+        db.session.rollback()
+        print(f"Error creating venue: {e}")
+        # Return a JSON error response
+        return jsonify({'success': False, 'message': f'An error occurred. Venue {form.name.data} could not be listed.'}), 500
+
+      finally:
+        db.session.close()
+
+    # If form validation fails, return a JSON error response
+  return jsonify({'success': False, 'message': 'Form validation failed'}), 400
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -358,13 +340,20 @@ def edit_artist_submission(artist_id):
     try:
       # Find the artist by ID
       artist = Artist.query.get(artist_id)
-      
+
+      # Check if genres is already a list; if not, split
+      genres = data.get('genres')
+      if isinstance(genres, str):
+          genres = genres.split(',')  
+      elif not isinstance(genres, list):
+          genres = list(genres)  # Fallback if genres is formatted incorrectly
+
       # Update artist attributes with the form data
       artist.name = data.get('name')
       artist.city = data.get('city')
       artist.state = data.get('state')
       artist.phone = data.get('phone')
-      artist.genres = data.get('genres')
+      artist.genres = genres
       artist.facebook_link = data.get('facebook_link')
       artist.image_link = data.get('image_link')
       artist.website_link = data.get('website_link')
