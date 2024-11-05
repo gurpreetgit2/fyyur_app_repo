@@ -30,7 +30,7 @@
       <div class="form-group">
         <label for="genres">Genres</label>
         <small>Ctrl+Click to select multiple</small>
-        {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', autofocus = true) }}
+        {{ form.genres(class_ = 'form-control', multiple=True, placeholder='Genres, separated by commas', autofocus = true) }}
       </div>
       <div class="form-group">
           <label for="facebook_link">Facebook Link</label>
@@ -66,14 +66,13 @@
     document.getElementById('venueForm').onsubmit = function(e) {
       e.preventDefault();
 
-      const formData = new FormData(this);
-      const jsonData = Object.fromEntries(formData.entries());
+      const formData = new FormData(this);  // Use FormData to serialize form inputs
 
       fetch('/venues/create', {
           method: 'POST',
-          body: JSON.stringify(jsonData),
+          body: formData,  // Send the form data as it is
           headers: {
-              'Content-Type': 'application/json'
+              'Accept': 'application/json'  // Expect a JSON response from the server
           }
       })
       .then(response => {

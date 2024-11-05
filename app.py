@@ -5,7 +5,16 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, jsonify, render_template, request, Response, flash, redirect, url_for
+from flask import (
+   Flask, 
+   jsonify, 
+   render_template, 
+   request, 
+   Response, 
+   flash, 
+   redirect, 
+   url_for
+  )
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -14,6 +23,7 @@ from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
 from datetime import datetime
+from models import db, Venue, Artist, Show
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -21,72 +31,9 @@ from datetime import datetime
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
+db.init_app(app)
 
 migrate = Migrate(app, db)
-
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
-
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120), nullable=True)  # To store genres as a comma-separated string
-    facebook_link = db.Column(db.String(120), nullable=True)
-    image_link = db.Column(db.String(500), nullable=True)
-    website_link = db.Column(db.String(500), nullable=True)
-    seeking_talent = db.Column(db.Boolean, default=False)  # Boolean to indicate if seeking talent
-    seeking_description = db.Column(db.String(500), nullable=True)
-
-
-    # Relationship with Show model
-    shows = db.relationship('Show', backref='venue', lazy=True)
-
-    def num_upcoming_shows(self):
-        # Implement the logic to count upcoming shows
-        return Show.query.filter(Show.venue_id == self.id).count()
-
-    def __repr__(self):
-        return f'<Venue {self.name}, City: {self.city}, State: {self.state}>'
-
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-    website_link = db.Column(db.String(120))
-    seeking_venue = db.Column(db.Boolean, default=False)
-    seeking_description = db.Column(db.String(500), nullable=True)
-
-    # Relationship with Show model
-    shows = db.relationship('Show', backref='artist', lazy=True)
-
-
-class Show(db.Model):
-    __tablename__ = 'Show'
-
-    id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
-    show_time = db.Column(db.DateTime, nullable=False)
-
-    def __repr__(self):
-        return f'<Show {self.id}: {self.artist.name} at {self.venue.name} on {self.show_time.strftime("%A %B %d, %Y at %I:%M %p")}>'
-
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -160,7 +107,8 @@ def search_venues():
         })
 
     # Render the results with the search term
-    return render_template('pages/search_venues.html', results=response, search_term=search_term)
+    return render_template('pages/search_venues.html', 
+                           results=response, search_term=search_term)
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
@@ -219,57 +167,47 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  try:
-    # Extract data from the incoming JSON request
-    data = request.get_json()
+  form = VenueForm(request.form, meta={'csrf': False})
 
-    # Create a new Venue object
-    new_venue = Venue(
-        name=data.get('name'),
-        city=data.get('city'),
-        state=data.get('state'),
-        address=data.get('address'),
-        phone=data.get('phone'),
-        genres=data.get('genres'),
-        facebook_link=data.get('facebook_link'),
-        image_link=data.get('image_link'),
-        website_link=data.get('website_link'),
-        seeking_talent=data.get('seeking_talent') == 'y',
-        seeking_description=data.get('seeking_description')
-    )
-
-        # Add the new venue to the session and commit it to the database
-    db.session.add(new_venue)
-    db.session.commit()
-
-    # Return a success message
-    return jsonify({
-        'success': True,
-        'venue': {
-            'id': new_venue.id,
-            'name': new_venue.name,
-            'city': new_venue.city,
-            'state': new_venue.state,
-            'address': new_venue.address,
-            'phone': new_venue.phone,
-            'genres': new_venue.genres,
-            'facebook_link': new_venue.facebook_link,
-            'image_link': new_venue.image_link,
-            'website_link': new_venue.website_link,
-            'seeking_talent': new_venue.seeking_talent,
-            'seeking_description': new_venue.seeking_description
-        }
-    }), 201  # HTTP status code for created
-
-  except Exception as e:
-      # Rollback the session in case of an error
-      db.session.rollback()
-      print(f"Error creating venue: {e}")  # Log the error for debugging
-      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
+  # Print the form data and validation errors for debugging
+  print("Form Data:", request.form)
+  print("Form Validation Errors:", form.errors)
   
-  finally:
-    db.session.close()
+  if form.validate():  # This checks if the form passes all validations
+      try:
+        # Create a new Venue object using the form data
+        new_venue = Venue(
+          name=form.name.data,
+          city=form.city.data,
+          state=form.state.data,
+          address=form.address.data,
+          phone=form.phone.data,
+          genres=form.genres.data,  # Flask-WTF handles SelectMultipleField as a list automatically
+          facebook_link=form.facebook_link.data,
+          image_link=form.image_link.data,
+          website_link=form.website_link.data,
+          seeking_talent=form.seeking_talent.data or False,
+          seeking_description=form.seeking_description.data
+        )
 
+        # Add the new venue to the session and commit to the database
+        db.session.add(new_venue)
+        db.session.commit()
+
+        # Show success message
+        return jsonify({'success': True, 'message': f'Venue {form.name.data} was successfully listed!'})
+
+      except Exception as e:
+        db.session.rollback()
+        print(f"Error creating venue: {e}")
+        # Return a JSON error response
+        return jsonify({'success': False, 'message': f'An error occurred. Venue {form.name.data} could not be listed.'}), 500
+
+      finally:
+        db.session.close()
+
+    # If form validation fails, return a JSON error response
+  return jsonify({'success': False, 'message': 'Form validation failed'}), 400
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -322,7 +260,8 @@ def search_artists():
           "id": artist.id,
           "name": artist.name
       })
-  return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+  return render_template('pages/search_artists.html', 
+                         results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
@@ -368,7 +307,7 @@ def show_artist(artist_id):
     data = {
         "id": artist.id,
         "name": artist.name,
-        "genres": artist.genres.split(','),  # Assuming genres are stored as a comma-separated string
+        "genres": artist.genres,  # Assuming genres are stored as a comma-separated string
         "city": artist.city,
         "state": artist.state,
         "phone": artist.phone,
@@ -401,13 +340,20 @@ def edit_artist_submission(artist_id):
     try:
       # Find the artist by ID
       artist = Artist.query.get(artist_id)
-      
+
+      # Check if genres is already a list; if not, split
+      genres = data.get('genres')
+      if isinstance(genres, str):
+          genres = genres.split(',')  
+      elif not isinstance(genres, list):
+          genres = list(genres)  # Fallback if genres is formatted incorrectly
+
       # Update artist attributes with the form data
       artist.name = data.get('name')
       artist.city = data.get('city')
       artist.state = data.get('state')
       artist.phone = data.get('phone')
-      artist.genres = data.get('genres')
+      artist.genres = genres
       artist.facebook_link = data.get('facebook_link')
       artist.image_link = data.get('image_link')
       artist.website_link = data.get('website_link')
@@ -481,13 +427,20 @@ def create_artist_submission():
     # Extract data from the incoming JSON request
     data = request.get_json()
 
+    # Check if genres is already a list; if not, split
+    genres = data.get('genres')
+    if isinstance(genres, str):
+        genres = genres.split(',')  
+    elif not isinstance(genres, list):
+        genres = list(genres)  # Fallback if genres is formatted incorrectly
+
     # Create a new Venue object
     new_artist = Artist(
         name=data.get('name'),
         city=data.get('city'),
         state=data.get('state'),
         phone=data.get('phone'),
-        genres=data.get('genres'),
+        genres=genres,
         facebook_link=data.get('facebook_link'),
         image_link=data.get('image_link'),
         website_link=data.get('website_link'),

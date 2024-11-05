@@ -13,3 +13,6 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://gurpreetatwal:abc@localhost:5432/fyyur'
 
 # Additional configuration options
 SQLALCHEMY_TRACK_MODIFICATIONS = False  # To suppress a warning
+
+# Enable SQL query logging
+SQLALCHEMY_ECHO = True
