@@ -277,7 +277,7 @@ def show_artist(artist_id):
         Venue.name.label("venue_name"),
         Venue.image_link.label("venue_image_link"),
         Show.show_time
-    ).join(Venue).filter(Show.artist_id == artist_id).all()
+    ).join(Venue).filter(Show.artist_id == artist_id, Show.show_time < datetime.now()).all()
 
     # Fetch the upcoming shows for the artist
     upcoming_shows_query = db.session.query(
@@ -285,7 +285,7 @@ def show_artist(artist_id):
         Venue.name.label("venue_name"),
         Venue.image_link.label("venue_image_link"),
         Show.show_time
-    ).join(Venue).filter(Show.artist_id == artist_id).all()
+    ).join(Venue).filter(Show.artist_id == artist_id, Show.show_time >= datetime.now()).all()
 
     # Format past shows
     past_shows = [{
@@ -311,7 +311,7 @@ def show_artist(artist_id):
         "city": artist.city,
         "state": artist.state,
         "phone": artist.phone,
-        "website_link": artist.website_link,
+        "website": artist.website_link,
         "facebook_link": artist.facebook_link,
         "seeking_venue": artist.seeking_venue,
         "seeking_description": artist.seeking_description,
