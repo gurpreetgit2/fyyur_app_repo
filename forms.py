@@ -1,7 +1,17 @@
 from datetime import datetime
 from flask_wtf import Form, FlaskForm
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms import (StringField, 
+                     SelectField, 
+                     SelectMultipleField, 
+                     DateTimeField, 
+                     BooleanField)
+from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
+
+def validate_phone(form, field):
+    phone_number = field.data
+    if not phone_number.isdigit():
+        raise ValidationError("Phone number must contain only digits.")
+    
 
 class ShowForm(Form):
     artist_id = StringField(
@@ -83,13 +93,12 @@ class VenueForm(FlaskForm):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone'
+        'phone', validators=[DataRequired(), validate_phone]
     )
     image_link = StringField(
         'image_link'
     )
     genres = SelectMultipleField(
-        # TODO implement enum restriction
         'genres', validators=[DataRequired()],
         choices=[
             ('Alternative', 'Alternative'),
@@ -117,7 +126,7 @@ class VenueForm(FlaskForm):
         'facebook_link', validators=[URL()]
     )
     website_link = StringField(
-        'website_link'
+        'website_link', validators=[URL()]
     )
 
     seeking_talent = BooleanField( 'seeking_talent' )
@@ -128,7 +137,7 @@ class VenueForm(FlaskForm):
 
 
 
-class ArtistForm(Form):
+class ArtistForm(FlaskForm):
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -191,9 +200,8 @@ class ArtistForm(Form):
             ('WY', 'WY'),
         ]
     )
-    phone = StringField(
-        # TODO implement validation logic for state
-        'phone'
+    phone = StringField(       
+        'phone', validators=[DataRequired(), validate_phone]
     )
     image_link = StringField(
         'image_link'
@@ -223,12 +231,11 @@ class ArtistForm(Form):
         ]
      )
     facebook_link = StringField(
-        # TODO implement enum restriction
         'facebook_link', validators=[URL()]
      )
 
     website_link = StringField(
-        'website_link'
+        'website_link' , validators=[URL()]
      )
 
     seeking_venue = BooleanField( 'seeking_venue' )
