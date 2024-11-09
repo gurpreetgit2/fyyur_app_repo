@@ -2,6 +2,10 @@
 {% block title %}New Venue{% endblock %}
 {% block content %}
   <div class="form-wrapper">
+    <!-- Success and Error Messages -->
+    <div id="success-message" class="alert alert-success hidden">Venue created successfully!</div>
+    <div id="error-message" class="alert alert-danger hidden">There was an error creating the Venue.</div>
+
     <form id="venueForm" method="post" class="form" action="/venues/create">
       <h3 class="form-heading">List a new venue <a href="{{ url_for('index') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
       <div class="form-group">

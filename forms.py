@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_wtf import Form, FlaskForm
-from wtforms import (StringField, 
+from wtforms import (IntegerField, StringField, 
                      SelectField, 
                      SelectMultipleField, 
                      DateTimeField, 
@@ -13,11 +13,11 @@ def validate_phone(form, field):
         raise ValidationError("Phone number must contain only digits.")
     
 
-class ShowForm(Form):
-    artist_id = StringField(
+class ShowForm(FlaskForm):
+    artist_id = IntegerField(
         'artist_id'
     )
-    venue_id = StringField(
+    venue_id = IntegerField(
         'venue_id'
     )
     start_time = DateTimeField(
