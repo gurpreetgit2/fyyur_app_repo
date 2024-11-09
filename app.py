@@ -423,61 +423,49 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-  try:
-    # Extract data from the incoming JSON request
-    data = request.get_json()
 
-    # Check if genres is already a list; if not, split
-    genres = data.get('genres')
-    if isinstance(genres, str):
-        genres = genres.split(',')  
-    elif not isinstance(genres, list):
-        genres = list(genres)  # Fallback if genres is formatted incorrectly
+  form = ArtistForm(request.form, meta={'csrf': False})
 
-    # Create a new Venue object
-    new_artist = Artist(
-        name=data.get('name'),
-        city=data.get('city'),
-        state=data.get('state'),
-        phone=data.get('phone'),
-        genres=genres,
-        facebook_link=data.get('facebook_link'),
-        image_link=data.get('image_link'),
-        website_link=data.get('website_link'),
-        seeking_venue=data.get('seeking_venue') == 'y',
-        seeking_description=data.get('seeking_description')
-    )
+  # Print the form data and validation errors for debugging
+  print("Form Data:", request.form)
+  print("Form Validation Errors:", form.errors)
+
+  if form.validate():
+
+    try:
+      # Create a new Venue object
+      new_artist = Artist(
+          name=form.name.data,
+          city=form.city.data,
+          state=form.state.data,
+          phone=form.phone.data,
+          genres=form.genres.data,
+          facebook_link=form.facebook_link.data,
+          image_link=form.image_link.data,
+          website_link=form.website_link.data,
+          seeking_venue=form.seeking_venue.data or False,
+          seeking_description=form.seeking_description.data
+      )
 
         # Add the new venue to the session and commit it to the database
-    db.session.add(new_artist)
-    db.session.commit()
+      db.session.add(new_artist)
+      db.session.commit()
 
-    # Return a success message
-    return jsonify({
-        'success': True,
-        'artist': {
-            'id': new_artist.id,
-            'name': new_artist.name,
-            'city': new_artist.city,
-            'state': new_artist.state,
-            'phone': new_artist.phone,
-            'genres': new_artist.genres,
-            'facebook_link': new_artist.facebook_link,
-            'image_link': new_artist.image_link,
-            'website_link': new_artist.website_link,
-            'seeking_venue': new_artist.seeking_venue,
-            'seeking_description': new_artist.seeking_description
-        }
-    }), 201  # HTTP status code for created
+      # Show success message
+      return jsonify({'success': True, 'message': f'Venue {form.name.data} was successfully listed!'})
+    
+    except Exception as e:
+            db.session.rollback()
+            print(f"Error creating venue: {e}")
+            # Return a JSON error response
+            return jsonify({'success': False, 'message': f'An error occurred. Venue {form.name.data} could not be listed.'}), 500
 
-  except Exception as e:
-      # Rollback the session in case of an error
-      db.session.rollback()
-      print(f"Error creating venue: {e}")  # Log the error for debugging
-      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
-  
-  finally:
-    db.session.close()
+    finally:
+      db.session.close()
+
+      # If form validation fails, return a JSON error response
+  return jsonify({'success': False, 'message': 'Form validation failed'}), 400
+
 
 
 #  Shows
@@ -517,35 +505,39 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-   try:
-    # Extract data from the incoming JSON request
-    data = request.get_json()
+  form = ShowForm(request.form, meta={'csrf': False})
 
-    # create a new show obect
-    new_show = Show(
-       artist_id = data.get('artist_id'),
-       venue_id = data.get('venue_id'),
-       show_time = data.get('start_time')
-    )
-    db.session.add(new_show)
-    db.session.commit()
-    return jsonify({
-       'success': True,
-       'show':{
-          'id':new_show.id,
-          'venue_id':new_show.venue_id,
-          'start_time':new_show.show_time
-       }
-    }), 201  # HTTP status code for created
-   
-   except Exception as e:
-      db.session.rollback()
-      print(f"Error creating venue: {e}")  # Log the error for debugging
-      return jsonify({'success': False, 'error': str(e)}), 400  # HTTP status code for bad request
-   
-   finally: 
-    db.session.close()     
+  # Print the form data and validation errors for debugging
+  print("Form Data:", request.form)
+  print("Form Validation Errors:", form.errors)
+
+  if form.validate(): 
   
+    try:
+    # create a new show obect
+      new_show = Show(
+        artist_id = form.artist_id.data,
+        venue_id = form.venue_id.data,
+        show_time = form.start_time.data
+      )
+    
+      db.session.add(new_show)
+      db.session.commit()
+      # Show success message
+      return jsonify({'success': True, 'message': f'Show was successfully listed!'})
+
+    except Exception as e:
+      db.session.rollback()
+      print(f"Error creating venue: {e}")
+      # Return a JSON error response
+      return jsonify({'success': False, 'message': f'An error occurred. Venue could not be listed.'}), 500
+
+    finally:
+      db.session.close()
+
+    # If form validation fails, return a JSON error response
+  return jsonify({'success': False, 'message': 'Form validation failed'}), 400
+
 
 @app.errorhandler(404)
 def not_found_error(error):
